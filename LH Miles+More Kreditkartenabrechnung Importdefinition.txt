@@ -1,0 +1,238 @@
+' ---------------------------------------------------------------------------------
+' Anfang LH Miles+More Kreditkartenabrechnung
+' ---------------------------------------------------------------------------------
+' 1) https://www.miles-and-more.kartenabrechnung.de
+' 2) Kartenumsätze > Abgerechnete Umsätze fortlaufend
+' 3) Filter nach Rechnungsdatum > Zeitraum festlegen (z.B. 01.03.2010 - 31.03.2010) > Anzeigen
+' 4) Ganz unten rechts im Pop-Up-Fenster Export wählen
+' 5) Speichern als: > CSV
+' 6) Format: > Standard
+' 7) Export wählen > Speichern als...
+' ---------------------------------------------------------------------------------
+' Importdefinition für LH Miles+More Kreditkartenabrechnung
+'    Importeinstellungen:
+'    Quelle                     : Textdatei (*)
+'    Trennzeichen für Felder    : Semikolon
+'    Trennzeichen für Datensätze: LF
+'    Zeichensatz für            : Windows
+'    Text in Anführungszeichen  : Keine
+' ---------------------------------------------------------------------------------
+
+' Aktionen nur im ersten Durchlauf ausführen: Variablen deklarieren
+if ( NOT HasVariable("zeile") )
+dim zeile as number
+dim Servicekartennummer as text
+dim Jahr as number
+dim Monat as number
+dim Tag as number
+dim Kaufdatum as date
+dim Buchungsdatum as date
+dim UmsatzInt as number
+dim UmsatzFract as number
+dim VKBetrInt as number
+dim VKBetrFract as number
+dim VKBetrag as number
+dim VKKursInt as number
+dim VKKursFract as number
+dim VKKurs as number
+dim vz as number
+dim AuslGebInt as number
+dim AuslGebFract as number
+dim AuslGeb as number
+dim AuslGebProzent as number
+' mit Business-Paket 1,25% Auslandsgebühr
+set AuslGebProzent to 1.25
+' alternativ: ohne Business-Paket 1,75% Auslandsgebühr
+' set AuslGebProzent to 1.75
+' neues Format gibt Auslandsgebühren explizit an
+dim AuslGebSatz as text
+endif
+
+' Zeilen mitzählen
+set zeile to zeile + 1
+
+' Servicekartennummer aus Zeile 2 entnehmen und vergleichen
+if ( zeile = 2 )
+set Servicekartennummer to ReplaceAll(Spalte_002, "'", "")
+if ( Servicekartennummer <> BANKKONTO_NUMMER )
+beep
+msgBox("Fehler beim Lesen von LH Miles+More Kreditkartenabrechnung (Servicekartennummer ist " + Servicekartennummer + " / erwartet: " + BANKKONTO_NUMMER + ")!")
+set Vorlage_Import_OK to FALSE
+exit
+endif
+endif
+
+' Die Umsatzdaten beginnen erst ab Zeile 5, die Zeilen davor verwerfen
+if ( zeile < 5 )
+set Vorlage_Zeile_OK to FALSE
+exit
+endif
+
+' Nach den Umsatzdaten folgen noch einige Zeilen mit allg. Informationen, diese ebenso verwerfen
+if ( NOT ((Length(Spalte_001) = 8) OR (Spalte_001 = "-")))
+set Vorlage_Zeile_OK to FALSE
+exit
+endif
+
+' Abbrechen, wenn nicht mindestens 14 Felder in Importdatei vorhanden sind
+if ( NOT HasVariable("Spalte_014") )
+beep
+msgBox("Fehler beim Lesen von LH Miles+More Kreditkartenabrechnung (Ungültiges Datensatzformat)!")
+set Vorlage_Import_OK to FALSE
+exit
+endif
+
+' ---------------------------------------------------------------------------------
+' Importfelder den Datenfeldern zuordnen
+' ---------------------------------------------------------------------------------
+
+' Kaufdatum
+set Tag   to TextToNumber(NthField(Spalte_004, "-", 3))
+set Monat to TextToNumber(NthField(Spalte_004, "-", 2))
+set Jahr  to TextToNumber(NthField(Spalte_004, "-", 1))
+set Kaufdatum to Date(Tag, Monat, Jahr)
+' Buchungsdatum
+set Tag   to TextToNumber(NthField(Spalte_005, "-", 3))
+set Monat to TextToNumber(NthField(Spalte_005, "-", 2))
+set Jahr  to TextToNumber(NthField(Spalte_005, "-", 1))
+set Buchungsdatum to Date(Tag, Monat, Jahr)
+' Buchungsdatum in Vorlage übernehmen
+'set Vorlage_Datum to Buchungsdatum
+' alternativ: Kaufdatum in Vorlage übernehmen
+set Vorlage_Datum to Kaufdatum
+
+' Umsatzbeschreibung, 2 Felder
+' (kann leer sein oder nur ein Leerzeichen enthalten!)
+if (( Spalte_006 <> "" ) AND ( Spalte_006 <> " " ))
+' Saldovortrag-Zeilen ignorieren
+if(Spalte_006 = "Saldovortrag")
+set Vorlage_Zeile_OK to FALSE
+exit
+endif
+set Vorlage_Text to Vorlage_Text + Spalte_006
+endif
+if (( Spalte_007 <> "" ) AND ( Spalte_007 <> " " ))
+set Vorlage_Text to Vorlage_Text + " / " + Spalte_007
+endif
+
+' VK-Währungsinfo in Notiz (nur für Fremdwährungen)
+if (( Spalte_008 <> "EUR" ) AND ( Spalte_008 <> "") AND ( Spalte_008 <> " " ))
+' LH verwndet "," als Dezimaltrenner und "." als Tausendertrenner
+set VKBetrInt   to TextToNumber(ReplaceAll(NthField(Spalte_009, ",", 1), ".", ""))
+set VKBetrFract to TextToNumber(NthField(Spalte_009, ",", 2))
+' LH läßt bei Nachkommastellen nachlaufende Nullen weg. Es wird also z.B. 1,30.- als "1,3" anstelle "1,30" ausgegeben.
+if ( Length(NthField(Spalte_009, ",", 2)) = 1 )
+set VKBetrFract to ( 10 * VKBetrFract )
+endif
+if ( Spalte_010 = "H" )
+set vz to 1
+else
+set vz to -1
+endif
+set VKBetrag to ( vz * (VKBetrInt + (VKBetrFract / 100)))
+' LH verwndet "," als Dezimaltrenner und "." als Tausendertrenner
+set VKKursInt   to TextToNumber(ReplaceAll(NthField(Spalte_011, ",", 1), ".", ""))
+set VKKursFract to TextToNumber(NthField(Spalte_011, ",", 2))
+' LH läßt bei Nachkommastellen nachlaufende Nullen weg. Es wird also z.B. 1,30.- als "1,3" anstelle "1,30" ausgegeben.
+if ( Length(NthField(Spalte_011, ",", 2)) < 3 )
+set VKKursFract to (((3 - Length(NthField(Spalte_011, ",", 2))) * 10) * VKKursFract )
+endif
+set VKKurs to (VKKursInt + (VKKursFract / 1000))
+set Vorlage_Notizen to Spalte_008 + " " + Format(VKBetrag, "-#0.00") + " / Kurs: " + Format(VKKurs, "-#0.00000")
+endif
+
+' Umsatzbetrag
+' LH verwndet "," als Dezimaltrenner und "." als Tausendertrenner
+set UmsatzInt   to TextToNumber(ReplaceAll(NthField(Spalte_013, ",", 1), ".", ""))
+set UmsatzFract to TextToNumber(NthField(Spalte_013, ",", 2))
+' LH läßt bei Nachkommastellen nachlaufende Nullen weg. Es wird also z.B. 1,30.- als "1,3" anstelle "1,30" ausgegeben.
+if ( Length(NthField(Spalte_013, ",", 2)) = 1 )
+set UmsatzFract to ( 10 * UmsatzFract )
+endif
+if ( Spalte_014 = "H" )
+set vz to 1
+else
+set vz to -1
+endif
+set Vorlage_Betrag to ( vz * (UmsatzInt + (UmsatzFract / 100)))
+
+' Gebühr für Auslandseinsatz angefallen?
+if ( Spalte_016 <> "" )
+if ( Spalte_016 = "*" )
+' Altes Format: "*" in Spalte 16 gibt an für welche Umsätze mit Auslandsgebühr fällig war; Höhe der Gebühr ist implizit (s. Variable AuslGebProzent)
+' >>> Buchungsbetrag enthält Gebühr bereits <<<
+set AuslGeb to (Vorlage_Betrag - (Vorlage_Betrag / ( 1 + (AuslGebProzent / 100))))
+set Vorlage_Betrag to (Vorlage_Betrag - AuslGeb)
+set AuslGebSatz to Format(AuslGebProzent, "-#0.00\%")
+else
+' Neues Format: Prozentsatz für Auslandsgebühr in Spalte 16, Betrag in Spalte 18
+' >>> Buchungsbetrag enthält Gebühr noch nicht <<<
+set AuslGebSatz to Spalte_016
+' LH verwndet "," als Dezimaltrenner und "." als Tausendertrenner
+set AuslGebInt   to TextToNumber(ReplaceAll(NthField(Spalte_018, ",", 1), ".", ""))
+set AuslGebFract to TextToNumber(NthField(Spalte_018, ",", 2))
+' LH läßt bei Nachkommastellen nachlaufende Nullen weg. Es wird also z.B. 1,30.- als "1,3" anstelle "1,30" ausgegeben.
+if ( Length(NthField(Spalte_018, ",", 2)) = 1 )
+set AuslGebFract to ( 10 * AuslGebFract )
+endif
+set AuslGeb to (AuslGebInt + (AuslGebFract / 100))
+endif
+if ( Vorlage_Notizen <> "" )
+set Vorlage_Notizen to "Ausl.geb. " + AuslGebSatz + " = EUR " + Format(AuslGeb, "-#0.00") + " (Ursp.betr. " + Vorlage_Notizen + ")"
+else
+set Vorlage_Notizen to "Ausl.geb. " + AuslGebSatz + " = EUR " + Format(AuslGeb, "-#0.00")
+endif
+endif
+
+' ---------------------------------------------------------------------------------
+' Optional: Belegvervollständigung
+' ---------------------------------------------------------------------------------
+
+' Tankstellenbelege auf KFz Betriebskosten
+if PatternCount(Vorlage_Text,"-TANK.") > 0
+set Vorlage_Konto to "4530"
+endif
+
+' Auslandsgebühren auf Nebenkosten des Geldverkehrs
+if Position(Vorlage_Text,"Ausl.geb. ",1,1) = 1
+set Vorlage_Konto to "4970"
+endif
+
+' Reisebüro auf Reisekosten Unternehmer
+if PatternCount(Vorlage_Text,"Bcd Travel Germany") > 0
+set Vorlage_Konto to "4670"
+set Vorlage_Steuersatz to "VSt19"
+endif
+' Hotel auf Reisekosten Unternehmer
+if PatternCount(Vorlage_Text,"Hotel") > 0
+set Vorlage_Konto to "4670"
+endif
+' Taxi auf Reisekosten Unternehmer
+if PatternCount(Vorlage_Text,"Taxi") > 0
+set Vorlage_Konto to "4670"
+endif
+' ÖPNV auf Reisekosten Unternehmer Fahrtkosten
+if PatternCount(Vorlage_Text,"Mvg-Handyticket") > 0
+set Vorlage_Konto to "4673"
+set Vorlage_Steuersatz to "VSt7"
+endif
+
+' M-Net Internet auf Telefon
+if PatternCount(Vorlage_Text,"M-NET TELEK. GMBH") > 0
+set Vorlage_Konto to "4920"
+endif
+
+' SWM auf Gas, Strom, Wasser (Verwaltung, Betrieb)
+if PatternCount(Vorlage_Text,"STADTWERKE MUENCHEN") > 0
+set Vorlage_Konto to "4240"
+endif
+
+' Privateinlagen
+if PatternCount(Vorlage_Text,"PRIVATEINLAGE") > 0
+set Vorlage_Konto to "1890"
+endif
+
+
+' ---------------------------------------------------------------------------------
+' Ende LH Miles+More Kreditkartenabrechnung
+' ---------------------------------------------------------------------------------
