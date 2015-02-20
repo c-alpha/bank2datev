@@ -1,7 +1,7 @@
 LH2MonKey
 =========
 
-Process transactions for [Lufthansa Mile&More credit cards][https://www.miles-and-more-kreditkarte.com] as downloaded from their clients portal as CSV files, generate extra transactions reflecting foreign use surcharges, and import everything into the [MonKey Office][http://www.monkey-office.de] accounting software.
+Process transactions for [Lufthansa Mile&More credit cards](https://www.miles-and-more-kreditkarte.com) as downloaded from their clients portal as CSV files, generate extra transactions reflecting foreign use surcharges, and import everything into the [MonKey Office](http://www.monkey-office.de) accounting software.
 
 Why does this project exist?
 ----------------------------
