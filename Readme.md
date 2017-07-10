@@ -37,6 +37,10 @@ Who did make this app?
 Change log
 ----------
 
+2017-07-10 - **v1.1**
+
+* LH added a new first column to their export format as of July 2017 ([c-alpha](https://github.com/c-alpha))
+
 2015-02-20 - **v1.0**
 
 * First commit. ([c-alpha](https://github.com/c-alpha))
