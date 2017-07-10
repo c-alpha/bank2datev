@@ -53,13 +53,13 @@ match($1, "^[0-9]+$") && (aida_col==1) {
 
 # new format starting July 2017
 match($1, "^[0-9]{6}[x]{6}[0-9]{4}$") && (cc_col==1) {
-    # keep the original transaction
-    print $0;
+    # keep the original transaction but remove credit card column
+    print $2";"$3";"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$11";"$12";"$13";"$14";"$15";"$16";"$17";"$18";"$19;
     if (NF>15) {
         num_foreign++;
         # if foreign use surcharge incurred, generate a new
         # transaction for the additional fee
-        print $1";"$2";"$3";"$4";"$5";"$6";Ausl.geb. "$7";"$8";"$18";"$19";S;1;"$18";"$19";S";
+        print $2";"$3";"$4";"$5";"$6";Ausl.geb. "$7";"$8";"$18";"$19";S;1;"$18";"$19";S";
     }
 }
 
