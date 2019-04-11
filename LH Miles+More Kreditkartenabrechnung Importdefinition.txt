@@ -54,7 +54,7 @@ set zeile to zeile + 1
 ' Servicekartennummer aus Zeile 2 entnehmen und vergleichen
 if ( zeile = 2 )
 set Servicekartennummer to ReplaceAll(Spalte_002, "'", "")
-if ( Servicekartennummer <> BANKKONTO_NUMMER )
+if ( (Servicekartennummer <> "") AND (Servicekartennummer <> BANKKONTO_NUMMER) )
 beep
 msgBox("Fehler beim Lesen von LH Miles+More Kreditkartenabrechnung (Servicekartennummer ist " + Servicekartennummer + " / erwartet: " + BANKKONTO_NUMMER + ")!")
 set Vorlage_Import_OK to FALSE
@@ -130,15 +130,13 @@ else
 set vz to -1
 endif
 set VKBetrag to ( vz * (VKBetrInt + (VKBetrFract / 100)))
+
 ' LH verwndet "," als Dezimaltrenner und "." als Tausendertrenner
 set VKKursInt   to TextToNumber(ReplaceAll(NthField(Spalte_011, ",", 1), ".", ""))
 set VKKursFract to TextToNumber(NthField(Spalte_011, ",", 2))
-' LH läßt bei Nachkommastellen nachlaufende Nullen weg. Es wird also z.B. 1,30.- als "1,3" anstelle "1,30" ausgegeben.
-if ( Length(NthField(Spalte_011, ",", 2)) < 3 )
-set VKKursFract to (((3 - Length(NthField(Spalte_011, ",", 2))) * 10) * VKKursFract )
-endif
-set VKKurs to (VKKursInt + (VKKursFract / 1000))
-set Vorlage_Notizen to Spalte_008 + " " + Format(VKBetrag, "-#0.00") + " / Kurs: " + Format(VKKurs, "-#0.00000")
+set VKKursFract to (VKKursFract / Pow(10, Length(NthField(Spalte_011, ",", 2))))
+set VKKurs to (VKKursInt + VKKursFract)
+set Vorlage_Notizen to "Ursprungsbetrag " + Spalte_008 + " " + Format(VKBetrag, "-#0.00") + " / Kurs: " + Format(VKKurs, "-#0.000000")
 endif
 
 ' Umsatzbetrag
@@ -189,12 +187,12 @@ endif
 ' ---------------------------------------------------------------------------------
 
 ' Tankstellenbelege auf KFz Betriebskosten
-if PatternCount(Vorlage_Text,"-TANK.") > 0
+if PatternCount(Vorlage_Text,"TANK") > 0
 set Vorlage_Konto to "4530"
 endif
 
 ' Auslandsgebühren auf Nebenkosten des Geldverkehrs
-if Position(Vorlage_Text,"Ausl.geb. ",1,1) = 1
+if (PatternCount(Vorlage_Text,"Ausl.geb. ") > 0) OR (PatternCount(Vorlage_Text,"Auslandseinsatz") > 0)
 set Vorlage_Konto to "4970"
 endif
 
@@ -203,16 +201,19 @@ if PatternCount(Vorlage_Text,"Bcd Travel Germany") > 0
 set Vorlage_Konto to "4670"
 set Vorlage_Steuersatz to "VSt19"
 endif
+
 ' Hotel auf Reisekosten Unternehmer
 if PatternCount(Vorlage_Text,"Hotel") > 0
 set Vorlage_Konto to "4670"
 endif
+
 ' Taxi auf Reisekosten Unternehmer
 if PatternCount(Vorlage_Text,"Taxi") > 0
 set Vorlage_Konto to "4670"
 endif
+
 ' ÖPNV auf Reisekosten Unternehmer Fahrtkosten
-if PatternCount(Vorlage_Text,"Mvg-Handyticket") > 0
+if (PatternCount(Vorlage_Text,"Mvg-Handyticket") > 0) OR (PatternCount(Vorlage_Text,"MVG ONLINESERVICES") > 0)
 set Vorlage_Konto to "4673"
 set Vorlage_Steuersatz to "VSt7"
 endif
