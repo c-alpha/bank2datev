@@ -126,13 +126,13 @@ function isodate(str) {
         purchase_date     = isodate(unquote($1));
         booked_date       = isodate(unquote($2));
         description_text  = unquote($3);
-        purchase_currency = (match($5, "[A-Z]{3}")) ? substr($5, RSTART, RLENGTH) : "EUR";
-        purchase_amount   = (match($5, "[0-9]+,[0-9]{2}")) ? substr($5, RSTART, RLENGTH) : booked_amount;
         debit_or_credit   = (match($4, "^\"-")) ? "S" : "H";
-        exhange_rate      = ($6!="\"\"") ? unquote($6) : "1,00";
         booked_currency   = "EUR";
         sub("-", "", $4);
         booked_amount     = unquote($4);
+        purchase_currency = (match($5, "[A-Z]{3}")) ? substr($5, RSTART, RLENGTH) : "EUR";
+        purchase_amount   = (match($5, "[0-9]+,[0-9]{2}")) ? substr($5, RSTART, RLENGTH) : booked_amount;
+        exhange_rate      = ($6!="\"\"") ? unquote($6) : "1,00";
         printf "00000000;%s;%d;%s;%s;%s;;%s;%s;%s;%s;%s;%s;%s;;;;\n",
             invoice_date,
             line_item_number,
