@@ -1,0 +1,206 @@
+' ---------------------------------------------------------------------------------
+' Importdefinition für DATEV Bankkontoumsätze (ASCII-Weiterverarbeitungsdatei)
+'    Importeinstellungen:
+'    Quelle                     : Textdatei (*)
+'    Trennzeichen für Felder    : Semikolon
+'    Trennzeichen für Datensätze: CR&LF
+'    Zeichensatz                : UTF8
+'    Text in Anführungszeichen  : Doppelt
+' ---------------------------------------------------------------------------------
+' https://apps.datev.de/help-center/documents/9226961
+
+' Aktionen nur im ersten Durchlauf ausführen: Variablen deklarieren
+if ( NOT HasVariable("valid") )
+    dim valid as boolean
+    dim zeile as number
+    dim referenz_iban as text
+    dim bic as text
+    dim iban as text
+    dim klient as text
+    dim klient_bic as text
+    dim klient_iban as text
+    dim betrag as number
+    dim verwendungszweck as text
+    dim buchungstext as text
+    dim notiz as text
+    dim ursprungsbetrag as number
+    dim ursprungswaehrung as text
+    dim gebuehr as number
+    dim gebuehrwaehrung as text
+    dim wechselkurs as number
+    dim notiz_ursprungsbetrag as text
+    dim notiz_gebuehr as text
+endif
+
+' Zeilen mitzählen
+set zeile to zeile + 1
+
+' ---------------------------------------------------------------------------------
+' Plausibilitätsprüfungen
+' ---------------------------------------------------------------------------------
+
+' Abbrechen, wenn nicht mindestens 7 Felder in der Zeile vorhanden sind
+if ( NOT HasVariable("Spalte_007") )
+    beep
+    msgBox("Fehler beim Lesen der DATEV-Exportdatei (Ungültiges Datensatzformat)!")
+    set Vorlage_Import_OK to FALSE
+    exit
+endif
+
+' Abbrechen wenn IBAN/Kontonummer nicht übereinstimmt
+set bic to Spalte_001
+set iban to Spalte_002
+set referenz_iban to Right(BANKKONTO_IBAN, Length(iban))
+if ( NOT referenz_iban = iban )
+    beep
+    msgBox("Fehler beim Lesen der DATEV-Exportdatei (Ungültiges Finanzkonto in Zeile " + NumToText(zeile) + ")!")
+    set Vorlage_Import_OK to FALSE
+    exit
+endif
+
+' Abbrechen bei Fremdwährung
+if ( HasVariable("Spalte_017") )
+    if ( (Spalte_017 <> "") AND (Spalte_017 <> WAEHRUNG) )
+        msgBox("Fehler beim Lesen der DATEV-Exportdatei (Buchung in Fremdwährung in Zeile " + NumToText(zeile) + ")!")
+        set Vorlage_Import_OK to FALSE
+        exit
+    endif
+endif
+
+' ---------------------------------------------------------------------------------
+' Importfelder den Datenfeldern zuordnen
+' ---------------------------------------------------------------------------------
+
+' Beleg-Nr.
+set Vorlage_BelegNr to NumToText(zeile)
+
+' Referenz
+if ( Spalte_003 <> "")
+    set Vorlage_Referenz to Spalte_003
+endif
+
+' Transaktionsdatum
+set Vorlage_Datum to TextToDate(Spalte_006)
+
+' Betrag
+set betrag to TextToNumber(Spalte_007)
+set Vorlage_Betrag to betrag
+
+' Text
+if ( HasVariable("Spalte_008") )
+    set klient to Spalte_008
+endif
+if ( HasVariable("Spalte_009") )
+    set klient to klient + Spalte_009
+endif
+if ( HasVariable("Spalte_012") )
+    set verwendungszweck to Spalte_012
+endif
+if ( HasVariable("Spalte_013") )
+    set verwendungszweck to verwendungszweck + Spalte_013
+endif
+if ( HasVariable("Spalte_014") )
+    set verwendungszweck to verwendungszweck + Spalte_014
+endif
+if ( HasVariable("Spalte_015") )
+    set verwendungszweck to verwendungszweck + Spalte_015
+endif
+if ( HasVariable("Spalte_019") )
+    set verwendungszweck to verwendungszweck + Spalte_019
+endif
+if ( HasVariable("Spalte_020") )
+    set verwendungszweck to verwendungszweck + Spalte_020
+endif
+if ( HasVariable("Spalte_021") )
+    set verwendungszweck to verwendungszweck + Spalte_021
+endif
+if ( HasVariable("Spalte_022") )
+    set verwendungszweck to verwendungszweck + Spalte_022
+endif
+if ( HasVariable("Spalte_023") )
+    set verwendungszweck to verwendungszweck + Spalte_023
+endif
+if ( HasVariable("Spalte_024") )
+    set verwendungszweck to verwendungszweck + Spalte_024
+endif
+if ( HasVariable("Spalte_031") )
+    set verwendungszweck to verwendungszweck + Spalte_031
+endif
+if ( HasVariable("Spalte_032") )
+    set verwendungszweck to verwendungszweck + Spalte_032
+endif
+if ( HasVariable("Spalte_033") )
+    set verwendungszweck to verwendungszweck + Spalte_033
+endif
+if ( HasVariable("Spalte_034") )
+    set verwendungszweck to verwendungszweck + Spalte_034
+endif
+set Vorlage_Text to klient
+if ( verwendungszweck <> "" )
+    if ( Vorlage_Text <> "" )
+        set Vorlage_Text to Vorlage_Text + " / "
+    endif
+    set Vorlage_Text to Vorlage_Text + verwendungszweck
+endif
+
+' Notizen
+if ( HasVariable("Spalte_010") )
+    set klient_bic to Spalte_010
+endif
+if ( HasVariable("Spalte_011") )
+    set klient_iban to Spalte_011
+endif
+if ( HasVariable("Spalte_018") )
+    set buchungstext to Spalte_018
+endif
+if ( HasVariable("Spalte_025") )
+    set ursprungsbetrag to TextToNumber(Spalte_025)
+    if ( ursprungsbetrag <> 0 )
+        set ursprungswaehrung to Spalte_026
+        set wechselkurs to ursprungsbetrag / betrag
+        set notiz_ursprungsbetrag to "Ursp.betr. " + ursprungswaehrung + " " + Format(ursprungsbetrag, "#,#.00") + " / Kurs " + Format(wechselkurs, "#,#.000000")
+    else
+        set notiz_ursprungsbetrag to ""
+    endif
+endif
+if ( HasVariable("Spalte_029") )
+    set gebuehr to TextToNumber(Spalte_029)
+    if ( gebuehr <> 0 )
+        set gebuehrwaehrung to Spalte_030
+        set notiz_gebuehr to "Gebühr " + gebuehrwaehrung + " " + Format(gebuehr, "#,#.##")
+    else
+        set notiz_gebuehr to ""
+    endif
+endif
+if ( buchungstext <> "" )
+    if ( Vorlage_Notizen <> "" )
+        set Vorlage_Notizen to Vorlage_Notizen + " / "
+    endif
+    set Vorlage_Notizen to Vorlage_Notizen + buchungstext
+endif
+if ( notiz_ursprungsbetrag <> "" )
+    if ( Vorlage_Notizen <> "" )
+        set Vorlage_Notizen to Vorlage_Notizen + " / "
+    endif
+    set Vorlage_Notizen to Vorlage_Notizen + notiz_ursprungsbetrag
+endif
+if ( notiz_gebuehr <> "" )
+    if ( Vorlage_Notizen <> "" )
+        set Vorlage_Notizen to Vorlage_Notizen + " / "
+    endif
+    set Vorlage_Notizen to Vorlage_Notizen + notiz_gebuehr
+endif
+if ( klient_iban <> "")
+    if ( Vorlage_Notizen <> "" )
+        set Vorlage_Notizen to Vorlage_Notizen + " / "
+    endif
+    if ( betrag < 0 )
+        set Vorlage_Notizen to Vorlage_Notizen + "an"
+    else
+        set Vorlage_Notizen to Vorlage_Notizen + "von"
+    endif
+    set Vorlage_Notizen to Vorlage_Notizen + " Konto " + klient_iban
+    if ( Length(klient_bic) < 11 )
+        set Vorlage_Notizen to Vorlage_Notizen + " bei BLZ " + klient_bic
+    endif
+endif
