@@ -155,7 +155,7 @@ function isodate(str) {
         booked_amount     = unquote($4);
         purchase_currency = (match($5, "[A-Z]{3}")) ? substr($5, RSTART, RLENGTH) : "EUR";
         purchase_amount   = (match($5, "[0-9]+,[0-9]{2}")) ? substr($5, RSTART, RLENGTH) : booked_amount;
-        exhange_rate      = ($6!="\"\"") ? unquote($6) : "1,00";
+        exchange_rate     = ($6!="\"\"") ? unquote($6) : "1,00";
         printf "00000000;%s;%d;%s;%s;%s;;%s;%s;%s;%s;%s;%s;%s;;;;\n",
             invoice_date,
             line_item_number,
@@ -165,7 +165,7 @@ function isodate(str) {
             purchase_currency,
             purchase_amount,
             debit_or_credit,
-            exhange_rate,
+            exchange_rate,
             booked_currency,
             booked_amount,
             debit_or_credit;
@@ -175,26 +175,26 @@ function isodate(str) {
 
 # format starting summer 2023
 (fmt_2023==1) && (NR>3) {
-    if ($4 != "Lastschrift") {
+    if ($5 != "Lastschrift") {
         gsub("/", ".", $1);
         gsub("/", ".", $2);
         purchase_date     = $1;
         booked_date       = $2;
-        booked_currency   = (match($3, "[A-Z]{3}")) ? substr($3, RSTART, RLENGTH) : "";
-        booked_amount     = (match($3, "-?[0-9]+(.[0-9]+)?")) ? substr($3, RSTART, RLENGTH)+0 : 0.00;
+        booked_amount     = $3;
+        booked_currency   = $4;
         # split description text into chunks of 27 chars max
         # text beyond 14 * 27 = 378 chars gets truncated (and thus ignored)
-        descr_total_len = length($4);
+        descr_total_len = length($5);
         if (descr_total_len > 378) {
             print "WARNING: booking text in line " NR " exceeds 378 characters and will be truncated." >"/dev/stderr";
         }
         for (i=0; i<14; i++) {
-            descrip[i] = substr($4, i*27, 27);
+            descrip[i] = substr($5, i*27, 27);
         }
-        payment_type      = ($5!="unknown") ? $5 : "";
-        purchase_currency = (match($7, "[A-Z]{3}")) ? substr($7, RSTART, RLENGTH) : "";
-        purchase_amount   = (match($7, "-?[0-9]+(.[0-9]+)?")) ? substr($7, RSTART, RLENGTH)+0 : 0.00;
-        exhange_rate      = ($8!="") ? $8 : "";
+        payment_type      = ($6!="unknown") ? $6 : "";
+        purchase_amount   = ($8 != "") ? $8 : 0.00;
+        purchase_currency = $9;
+        exchange_rate     = ($10 != "") ? $10 : "";
         # compute index of last field to be filled
         last_field = 7;
         num_descr_segs = int(descr_total_len / 27) + (((descr_total_len % 27) > 0) ? 1 : 0);
@@ -208,10 +208,9 @@ function isodate(str) {
         if (payment_type != "")    last_field = (last_field < 18) ? 18 : last_field;
         if (purchase_amount != 0)  last_field = (last_field < 26) ? 26 : last_field;
 
-        # print "<<< line " NR " >>> last_field = " last_field  >"/dev/stderr";
-        # print "<<< line " NR " >>> purchase_amount = " purchase_amount  >"/dev/stderr";
-
+        ###
         # generate output
+        #
         printf "%s;%s;%s;%s;%s;%s;%0.02f",
             enquote(""),                #  1    our BIC
             enquote(card_number),       #  2    our IBAN
