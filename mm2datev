@@ -180,6 +180,7 @@ function isodate(str) {
         gsub("/", ".", $2);
         purchase_date     = $1;
         booked_date       = $2;
+        sub(",", ".", $3);
         booked_amount     = $3;
         booked_currency   = $4;
         # split description text into chunks of 27 chars max
@@ -192,6 +193,7 @@ function isodate(str) {
             descrip[i] = substr($5, i*27, 27);
         }
         payment_type      = ($6!="unknown") ? $6 : "";
+        sub(",", ".", $8);
         purchase_amount   = ($8 != "") ? $8 : 0.00;
         purchase_currency = $9;
         exchange_rate     = ($10 != "") ? $10 : "";
