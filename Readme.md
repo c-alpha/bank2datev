@@ -38,13 +38,13 @@ historical data to work with, it will still generate output for those.
 
 ## How Does It Work? ##
 
-The **AWK script** `lh2monkey` parses the CSV file from the Miles&More
+The **AWK script** `mm2datev` parses the CSV file from the Miles&More
 website, splits transactions subject to foreign use surcharge and
 inserts extra transactions reflecting those extra charges as needed.
 You can either run the AWK script manually:
 
 ```console
-user@example$ lh2monkey <mm-data.csv >monkey-data.txt
+user@example$ mm2datev <mm-data.csv >monkey-data.txt
 Detected 2023 website relaunch file format.
 Converted 141 transactions to DATEV format.
 ```
@@ -56,7 +56,7 @@ its output to a new file, and ignore `stderr`:
 #!/usr/bin/env bash
 # ...
 
-lh2monkey <${infile} >${outfile} 2>/dev/null
+mm2datev <${infile} >${outfile} 2>/dev/null
 ```
 
 **The format of the generated data will depend on the format of the
@@ -112,7 +112,7 @@ Office:
    the contents of the
    `import-datev-ascii-weiterverarbeitungsdatei.txt` file.
 
-Now you can call the `lh2monkey` AWK script manually, redirecting
+Now you can call the `mm2datev` AWK script manually, redirecting
 `stdout` to a new file, and then import that new file as a bank account
 statement in MonKey Office, using the corresponding import definition.
 
@@ -123,9 +123,9 @@ Two 2023 data format caveats:
     as displayed in your browser window. To get transactions for a
     specific period only, you will need to filter the generated data.
     For instance by using `awk` to extract all transactions with a
-    transaction date in April 2023 before passing the data to `lh2monkey`:
+    transaction date in April 2023 before passing the data to `mm2datev`:
     ```console
-    user@example$ awk -F";" '$1 ~ /[0-9]{2}\/04\/2023/' mm-data.csv | lh2monkey >monkey-data-2023-04.txt
+    user@example$ awk -F";" '$1 ~ /[0-9]{2}\/04\/2023/' mm-data.csv | mm2datev >monkey-data-2023-04.txt
     Detected 2023 website relaunch file format.
     Converted 13 transactions to DATEV format.
     ```
@@ -134,12 +134,12 @@ Two 2023 data format caveats:
     format specification. Where is the missing 0.001%? The DATEV
     format specification requires that all bank transactions within
     any given file must be sorted in ascending order by booking date
-    (i.e. oldest entry first). The `lh2monkey` script does not ensure
+    (i.e. oldest entry first). The `mm2datev` script does not ensure
     this sorting, however. It will simply generate the transactions in
     whatever order they appear in the input. To get 100%, you will
     need to sort the output. For instance:
     ```console
-    user@example$ lh2monkey <mm-data.csv >monkey-data.txt
+    user@example$ mm2datev <mm-data.csv >monkey-data.txt
     Detected 2023 website relaunch file format.
     Converted 141 transactions to DATEV format.
     user@example$ sort -n -t ";" -k 6.7,6.10 -k 6.4,6.5 -k 6.1,6.2 -o monkey-data.txt monkey-data.txt
