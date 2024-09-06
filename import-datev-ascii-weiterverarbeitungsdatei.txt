@@ -200,7 +200,7 @@ if ( klient_iban <> "")
         set Vorlage_Notizen to Vorlage_Notizen + "von"
     endif
     set Vorlage_Notizen to Vorlage_Notizen + " Konto " + klient_iban
-    if ( Length(klient_bic) < 11 )
-        set Vorlage_Notizen to Vorlage_Notizen + " bei BLZ " + klient_bic
+    if ( Length(klient_bic) > 0 )
+        set Vorlage_Notizen to Vorlage_Notizen + " bei " + klient_bic
     endif
 endif
