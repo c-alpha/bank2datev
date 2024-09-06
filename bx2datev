@@ -1,0 +1,158 @@
+#!/usr/bin/env awk -f
+#
+# This software is Copyright (c) 2024 by Condition-ALPHA.
+#
+# This is free software, licensed under:
+#
+#   The European Union Public License (EUPL) v1.2
+#
+BEGIN {
+    FS        = "\t";
+    RS        = "\r";
+    num_trans = 0;
+    # optionally adjust the below variables as per your needs
+    currency   = (ENVIRON["CURRENCY"] != "") ? ENVIRON["CURRENCY"] : "EUR";
+    my_account = (ENVIRON["ACCOUNT"] != "") ? ENVIRON["ACCOUNT"] : "0123456789";
+}
+
+function unquote(str) {
+    return (substr(str, 2, length(str)-2));
+}
+
+function enquote(str) {
+    return(sprintf("\"%s\"", str));
+}
+
+function chop(str, segs, chunk_size, max_chunks) {
+    total_len = length(str);
+    num_segs  = int(total_len / chunk_size) + (((total_len % chunk_size) > 0) ? 1 : 0);
+    num_segs  = (num_segs > max_chunks) ? max_chunks : num_segs;
+    if (total_len > (chunk_size * max_chunks)) {
+        print "WARNING: text in line " NR " exceeds " (chunk_size * max_chunks) " characters and will be truncated." >"/dev/stderr";
+    }
+    for (i = 0; i < max_chunks; i++) {
+        segs[i+1] = substr(str, (i * chunk_size) + 1, chunk_size);
+    }
+    return (num_segs);
+}
+
+###
+#   Generate transaction lines
+#
+(NF>=15) {
+    ###
+    # parse input record
+    #
+    src_account = $1;
+    dst_account = $2;
+    sign        = (index(src_account, my_account) > 0) ? -1 : 1;
+    gsub("\\.",  "", $3);
+    gsub(",",  ".", $3);
+    booked_amount   = ($3 + 0) * sign;
+    booked_currency = currency;
+    purchase_date   = $8;
+    split($12, client_info, "/");
+    client_name = client_info[1];
+    client_iban = client_info[2];
+    client_bic  = client_info[3];
+    # split client name text into chunks of 27 chars max
+    # text beyond 2 * 27 = 54 chars gets truncated (and thus ignored)
+    num_client_segs = chop(client_name, client, 27, 2);
+    # split description text into chunks of 27 chars max
+    # text beyond 14 * 27 = 378 chars gets truncated (and thus ignored)
+    num_descr_segs = chop($7, descrip, 27, 14);
+    booked_date    = $15;
+    # compute index of last field to be filled
+    last_field = 7;
+    if (num_descr_segs > 0 && num_descr_segs < 5)
+        last_field = 11 + num_descr_segs;
+    else if (num_descr_segs > 4 && num_descr_segs < 11)
+        last_field = 18 + (num_descr_segs - 4);
+    else if (num_descr_segs > 10)
+        last_field = 30 + (num_descr_segs - 10);
+    if (num_client_segs != 0)  last_field = (last_field <  9) ?  9 : last_field;
+    if (client_bic != "")      last_field = (last_field < 10) ? 10 : last_field;
+    if (client_iban != "")     last_field = (last_field < 11) ? 11 : last_field;
+    if (booked_currency != "") last_field = (last_field < 17) ? 17 : last_field;
+
+    ###
+    # generate output
+    #
+    printf "%s;%s;%s;%s;%s;%s;%0.02f",
+        enquote(""),                #  1    our BIC
+        enquote(my_account),        #  2    our IBAN
+        enquote(""),                #  3    statement ID
+        "",                         #  4    statement date
+        booked_date,                #  5    booked date
+        purchase_date,              #  6    purchased date
+        booked_amount;              #  7    booked amount
+    if (last_field >= 9) {
+        printf ";%s;%s",
+            enquote(client[1]),         #  8    client name 1
+            enquote(client[2]);         #  9    client name 2
+    }
+    if (last_field >= 10) {
+        printf ";%s",
+            enquote(client_bic);        # 10    client BIC
+    }
+    if (last_field >= 11) {
+        printf ";%s",
+            enquote(client_iban);       # 11    client IBAN
+    }
+    if (last_field >= 12) {
+        printf ";%s",
+            enquote(descrip[1]);        # 12    description 1
+    }
+    if (last_field >= 13)
+        printf ";%s", enquote(descrip[2]);        # 13    description 2
+    if (last_field >= 14)
+        printf ";%s", enquote(descrip[3]);        # 14    description 3
+    if (last_field >= 15)
+        printf ";%s", enquote(descrip[4]);        # 15    description 4
+    if (last_field >= 17) {
+        printf ";%s;%s",
+            enquote(""),                # 16    transaction type code
+            enquote(booked_currency);   # 17    booked currency
+    }
+    if (last_field >= 18)
+        printf ";%s", enquote(payment_type);      # 18    booking text
+    if (last_field >= 19)
+        printf ";%s", enquote(descrip[5]);        # 19    description 5
+    if (last_field >= 20)
+        printf ";%s", enquote(descrip[6]);        # 20    description 6
+    if (last_field >= 21)
+        printf ";%s", enquote(descrip[7]);        # 21    description 7
+    if (last_field >= 22)
+        printf ";%s", enquote(descrip[8]);        # 22    description 8
+    if (last_field >= 23)
+        printf ";%s", enquote(descrip[9]);        # 23    description 9
+    if (last_field >= 24)
+        printf ";%s", enquote(descrip[10]);       # 24    description 10
+    if (last_field >= 26) {
+        printf ";;%s",                            # 25    purchase amount
+            enquote("");                          # 26    purchase currency
+    }
+    if (last_field >= 31) {
+        printf ";%s;%s;%s;%s;%s",
+            "",                     # 27    equivalent amount
+            enquote(""),            # 28    equivalent amount currency
+            "",                     # 29    fee
+            enquote(""),            # 30    fee currency
+            enquote(descrip[11]);   # 31    description 11
+    }
+    if (last_field >= 32)
+        printf ";%s", enquote(descrip[12]);        # 32    description 12
+    if (last_field >= 33)
+        printf ";%s", enquote(descrip[13]);        # 33    description 13
+    if (last_field >= 34)
+        printf ";%s", enquote(descrip[14]);        # 34    description 14
+    printf "\r\n";
+    num_trans++;
+}
+
+###
+#   Success message
+#
+END {
+    print "Converted "num_trans" transactions to DATEV format." >"/dev/stderr";
+}
