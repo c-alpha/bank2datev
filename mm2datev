@@ -29,6 +29,19 @@ function isodate(str) {
     return (sprintf("%04d-%02d-%02d", date[3], date[2], date[1]));
 }
 
+function chop(str, segs, chunk_size, max_chunks) {
+    total_len = length(str);
+    num_segs  = int(total_len / chunk_size) + (((total_len % chunk_size) > 0) ? 1 : 0);
+    num_segs  = (num_segs > max_chunks) ? max_chunks : num_segs;
+    if (total_len > (chunk_size * max_chunks)) {
+        print "WARNING: text in line " NR " exceeds " (chunk_size * max_chunks) " characters and will be truncated." >"/dev/stderr";
+    }
+    for (i = 0; i < max_chunks; i++) {
+        segs[i+1] = substr(str, (i * chunk_size) + 1, chunk_size);
+    }
+    return (num_segs);
+}
+
 ###
 #   Format detection heuristics
 #
@@ -176,6 +189,9 @@ function isodate(str) {
 # format starting summer 2023
 (fmt_2023==1) && (NR>3) {
     if ($5 != "Lastschrift") {
+        ###
+        # parse input record
+        #
         gsub("/", ".", $1);
         gsub("/", ".", $2);
         purchase_date     = $1;
@@ -185,13 +201,7 @@ function isodate(str) {
         booked_currency   = $4;
         # split description text into chunks of 27 chars max
         # text beyond 14 * 27 = 378 chars gets truncated (and thus ignored)
-        descr_total_len = length($5);
-        if (descr_total_len > 378) {
-            print "WARNING: booking text in line " NR " exceeds 378 characters and will be truncated." >"/dev/stderr";
-        }
-        for (i=0; i<14; i++) {
-            descrip[i] = substr($5, i*27, 27);
-        }
+        num_descr_segs = chop($7, descrip, 27, 14);
         payment_type      = ($6!="unknown") ? $6 : "";
         sub(",", ".", $8);
         purchase_amount   = ($8 != "") ? $8 : 0.00;
@@ -199,7 +209,6 @@ function isodate(str) {
         exchange_rate     = ($10 != "") ? $10 : "";
         # compute index of last field to be filled
         last_field = 7;
-        num_descr_segs = int(descr_total_len / 27) + (((descr_total_len % 27) > 0) ? 1 : 0);
         if (num_descr_segs > 0 && num_descr_segs < 5)
             last_field = 11 + num_descr_segs;
         else if (num_descr_segs > 4 && num_descr_segs < 11)
@@ -227,14 +236,14 @@ function isodate(str) {
                 enquote(""),                #  9    client name 2
                 enquote(""),                # 10    client BIC
                 enquote(""),                # 11    client IBAN
-                enquote(descrip[0]);        # 12    description 1
+                enquote(descrip[1]);        # 12    description 1
         }
         if (last_field >= 13)
-            printf ";%s", enquote(descrip[1]);        # 13    description 2
+            printf ";%s", enquote(descrip[2]);        # 13    description 2
         if (last_field >= 14)
-            printf ";%s", enquote(descrip[2]);        # 14    description 3
+            printf ";%s", enquote(descrip[3]);        # 14    description 3
         if (last_field >= 15)
-            printf ";%s", enquote(descrip[3]);        # 15    description 4
+            printf ";%s", enquote(descrip[4]);        # 15    description 4
         if (last_field >= 17) {
             printf ";%s;%s",
             enquote(""),                # 16    transaction type code
@@ -243,17 +252,17 @@ function isodate(str) {
         if (last_field >= 18)
             printf ";%s", enquote(payment_type);      # 18    booking text
         if (last_field >= 19)
-            printf ";%s", enquote(descrip[4]);        # 19    description 5
+            printf ";%s", enquote(descrip[5]);        # 19    description 5
         if (last_field >= 20)
-            printf ";%s", enquote(descrip[5]);        # 20    description 6
+            printf ";%s", enquote(descrip[6]);        # 20    description 6
         if (last_field >= 21)
-            printf ";%s", enquote(descrip[6]);        # 21    description 7
+            printf ";%s", enquote(descrip[7]);        # 21    description 7
         if (last_field >= 22)
-            printf ";%s", enquote(descrip[7]);        # 22    description 8
+            printf ";%s", enquote(descrip[8]);        # 22    description 8
         if (last_field >= 23)
-            printf ";%s", enquote(descrip[8]);        # 23    description 9
+            printf ";%s", enquote(descrip[9]);        # 23    description 9
         if (last_field >= 24)
-            printf ";%s", enquote(descrip[9]);        # 24    description 10
+            printf ";%s", enquote(descrip[10]);       # 24    description 10
         if (last_field >= 26) {
             if (purchase_amount != 0)
                 printf ";%0.02f", purchase_amount;    # 25    purchase amount
@@ -267,14 +276,14 @@ function isodate(str) {
                 enquote(""),            # 28    equivalent amount currency
                 "",                     # 29    fee
                 enquote(""),            # 30    fee currency
-                enquote(descrip[10]);   # 31    description 11
+                enquote(descrip[11]);   # 31    description 11
         }
         if (last_field >= 32)
-            printf ";%s", enquote(descrip[11]);        # 32    description 12
+            printf ";%s", enquote(descrip[12]);        # 32    description 12
         if (last_field >= 33)
-            printf ";%s", enquote(descrip[12]);        # 33    description 13
+            printf ";%s", enquote(descrip[13]);        # 33    description 13
         if (last_field >= 34)
-            printf ";%s", enquote(descrip[13]);        # 34    description 14
+            printf ";%s", enquote(descrip[14]);        # 34    description 14
         printf "\r\n";
         num_foreign++;
     }
