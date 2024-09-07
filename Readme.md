@@ -35,8 +35,9 @@ This script recognises all above listed historical and current
 formats, and processes them. Thus, in case you should still have any
 historical data to work with, it will still generate output for those.
 
-
 ## How Does It Work? ##
+
+### `mm2datev` ###
 
 The **AWK script** `mm2datev` parses the CSV file from the Miles&More
 website, splits transactions subject to foreign use surcharge and
@@ -58,6 +59,14 @@ its output to a new file, and ignore `stderr`:
 
 mm2datev <${infile} >${outfile} 2>/dev/null
 ```
+
+**Note well** that the generated output data will **not** include those
+transactions where the credit card's expenses are recovered from the linked bank
+account once a month (booking text "Lastschrift"). As it is assumed
+that the linked bank account's transactions will also be imported into
+MonKey Office, importing the "Lastschrift" transactions from the
+credit card would double up these transactions, resulting in double
+bookings in MonKey Office. Dropping them in `mm2datev` 
 
 **The format of the generated data will depend on the format of the
 input data:**
@@ -90,6 +99,34 @@ on the other hand, are a de-facto standard among tax advisers in the
 German speaking countries. Consequently, all banking and accounting
 tools targeting these countries will all but certainly have some
 built-in support for DATEV format files.
+
+### `bx2datev` ###
+
+The **AWK script** `bx2datev` parses an exported CSV file from the
+[Banx X banking app for
+macOS](https://www.application-systems.de/bankx/), and converts them
+to the same [DATEV
+ASCII-Weiterverarbeitungsdatei](https://apps.datev.de/help-center/documents/9226961)
+format for further processing. The Bank X app can export transactions in various formats
+
+
+You can either run the AWK script manually:
+
+```console
+user@example$ bx2datev <bx-data.csv >monkey-data.txt
+Converted 89 transactions to DATEV format.
+```
+
+Or, when using it as part of your own shell script, simply redirect
+its output to a new file, and ignore `stderr`:
+
+```bash
+#!/usr/bin/env bash
+# ...
+
+bx2datev <${infile} >${outfile} 2>/dev/null
+```
+
 
 ## How Do I Install and Use It? ##
 
