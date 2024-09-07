@@ -72,7 +72,8 @@ account once a month (booking text "Lastschrift"). As it is assumed
 that the linked bank account's transactions will also be imported into
 MonKey Office, importing the "Lastschrift" transactions from the
 credit card would double up these transactions, resulting in double
-bookings in MonKey Office. Dropping them in `mm2datev` 
+bookings in MonKey Office. Dropping them in `mm2datev` avoids such
+double bookings.
 
 **The format of the generated data will depend on the format of the
 input data:**
