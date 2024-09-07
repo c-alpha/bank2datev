@@ -41,10 +41,12 @@ for those.
 
 ### `mm2datev` ###
 
-The **AWK script** `mm2datev` parses the CSV file from the Miles&More
-website, splits transactions subject to foreign use surcharge and
-inserts extra transactions reflecting those extra charges as needed.
-You can either run the AWK script manually:
+The **AWK script** `mm2datev` parses a CSV file from the [Lufthansa
+Mile&More credit card
+website](https://www.miles-and-more-kreditkarte.com), splits
+transactions subject to foreign use surcharge and inserts extra
+transactions reflecting those extra charges as needed. You can either
+run the AWK script manually:
 
 ```console
 user@example$ mm2datev <mm-data.csv >monkey-data.txt
