@@ -1,10 +1,11 @@
-# LH2MonKey #
+# bank2datev 🏦💳 #
 
-Process transactions for [Lufthansa Mile&More credit
-cards](https://www.miles-and-more-kreditkarte.com) downloaded from
-their clients portal as CSV files, generate extra transactions
-reflecting foreign use surcharges, and import everything into the
-[MonKey Office](http://www.monkey-office.de) accounting software.
+Process transactions in CSV-ish formats from payment services and
+financial institutions, such as for instance credit card operators and
+banks, convert them into [DATEV
+ASCII-Weiterverarbeitungsdatei](https://apps.datev.de/help-center/documents/9226961)
+format, and import that into the [MonKey
+Office](http://www.monkey-office.de) accounting software.
 
 ## Why Does This Project Exist? ##
 
@@ -31,9 +32,10 @@ format:
 | 2018               | Historical format in use starting April 2018                                       | new header structure with empty lines, format reduced to eight columns (previous formats had 19), already contains foreign use surcharges as separate transactions, fields are enclosed in double quotes |
 | 2023               | Current format in use sicnce the website relaunch in summer 2023                   | reduced header structure, new order of columns, fields are unquoted again (cf. 2018 format)                                                                                                              |
 
-This script recognises all above listed historical and current
-formats, and processes them. Thus, in case you should still have any
-historical data to work with, it will still generate output for those.
+The `mm2datev` script recognises all above listed historical and
+current formats, and processes them. Thus, in case you should still
+have any historical data to work with, it will still generate output
+for those.
 
 ## How Does It Work? ##
 
