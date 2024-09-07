@@ -37,7 +37,9 @@ current formats, and processes them. Thus, in case you should still
 have any historical data to work with, it will still generate output
 for those.
 
+
 ## How Does It Work? ##
+
 
 ### `mm2datev` ###
 
@@ -104,6 +106,7 @@ German speaking countries. Consequently, all banking and accounting
 tools targeting these countries will all but certainly have some
 built-in support for DATEV format files.
 
+
 ### `bx2datev` ###
 
 The **AWK script** `bx2datev` parses an exported CSV file from the
@@ -111,8 +114,10 @@ The **AWK script** `bx2datev` parses an exported CSV file from the
 macOS](https://www.application-systems.de/bankx/), and converts them
 to the same [DATEV
 ASCII-Weiterverarbeitungsdatei](https://apps.datev.de/help-center/documents/9226961)
-format for further processing. The Bank X app can export transactions in various formats
-
+format for further processing. The Bank X app can export transactions
+in various formats. `bx2datev` reads files exported as "komplette
+Buchungen" from Bank X, since in this format Bank X exports the
+most information for each transaction.
 
 You can either run the AWK script manually:
 
@@ -153,11 +158,11 @@ Office:
    the contents of the
    `import-datev-ascii-weiterverarbeitungsdatei.txt` file.
 
-Now you can call the `mm2datev` AWK script manually, redirecting
-`stdout` to a new file, and then import that new file as a bank account
+Now you can call one of the AWK scripts manually, redirecting `stdout`
+to a new file, and then import that new file as a bank account
 statement in MonKey Office, using the corresponding import definition.
 
-Two 2023 data format caveats:
+A Miles&More 2023 data format caveat:
   * As of this writing, there is no option on the Miles&More credit
     card website to restrict the period for which transactions will be
     put in the CSV file. You will always get the full transaction list
@@ -170,15 +175,17 @@ Two 2023 data format caveats:
     Detected 2023 website relaunch file format.
     Converted 13 transactions to DATEV format.
     ```
+    
+A general DATEV format caveat:
   * The DATEV format output is 99.999% compliant with the [DATEV
     ASCII-Weiterverarbeitungsdatei](https://apps.datev.de/help-center/documents/9226961)
     format specification. Where is the missing 0.001%? The DATEV
     format specification requires that all bank transactions within
     any given file must be sorted in ascending order by booking date
-    (i.e. oldest entry first). The `mm2datev` script does not ensure
-    this sorting, however. It will simply generate the transactions in
-    whatever order they appear in the input. To get 100%, you will
-    need to sort the output. For instance:
+    (i.e. oldest entry first). The scripts do not ensure this sorting,
+    however. They will simply generate the transactions in whatever
+    order they appear in the input. To get 100%, you will need to sort
+    the output. For instance:
     ```console
     user@example$ mm2datev <mm-data.csv >monkey-data.txt
     Detected 2023 website relaunch file format.
