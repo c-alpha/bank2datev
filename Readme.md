@@ -166,17 +166,21 @@ statement in MonKey Office, using the corresponding import definition.
 A Miles&More 2023 data format caveat:
   * As of this writing, there is no option on the Miles&More credit
     card website to restrict the period for which transactions will be
-    put in the CSV file. You will always get the full transaction list
-    as displayed in your browser window. To get transactions for a
-    specific period only, you will need to filter the generated data.
-    For instance by using `awk` to extract all transactions with a
-    transaction date in April 2023 before passing the data to `mm2datev`:
+    put in the CSV file. Regardless of any display filters you may be
+    able to set on the web page to limit the transactions to display,
+    you will always get the full transaction list as stored on the
+    server (typically a few years back) in the exported data. For
+    accounting purposes you will likely be interested in the
+    transactions for a specific year only, however. To cater for this,
+    `mm2datev` reads the environment variable `YEAR` (defaulting to
+    the current year when unset), and writes transactions authorised
+    in that year only to the output:
     ```console
-    user@example$ awk -F";" '$1 ~ /[0-9]{2}\/04\/2023/' mm-data.csv | mm2datev >monkey-data-2023-04.txt
+    user@example$ (export YEAR="2021"; mm2datev <dkb.csv >monkey-data-2021.txt)
     Detected 2023 website relaunch file format.
-    Converted 13 transactions to DATEV format.
+    Converted 23 transactions to DATEV format.
     ```
-    
+
 A general DATEV format caveat:
   * The DATEV format output is 99.999% compliant with the [DATEV
     ASCII-Weiterverarbeitungsdatei](https://apps.datev.de/help-center/documents/9226961)
@@ -188,10 +192,30 @@ A general DATEV format caveat:
     order they appear in the input. To get 100%, you will need to sort
     the output. For instance:
     ```console
-    user@example$ mm2datev <mm-data.csv >monkey-data.txt
-    Detected 2023 website relaunch file format.
-    Converted 141 transactions to DATEV format.
     user@example$ sort -n -t ";" -k 6.7,6.10 -k 6.4,6.5 -k 6.1,6.2 -o monkey-data.txt monkey-data.txt
+    ```
+
+A caveat when using the supplied MonKey Office import definition:
+  * The MonkeyOffice import definition script
+    `import-datev-ascii-weiterverarbeitungsdatei.txt` contains a check
+    which compares the IBAN bank account number found in the to be
+    imported DATEV file with the IBAN bank account number stored in
+    MonKey Office. This is to protect against the imported data being
+    assigned to the wrong financial account in MonKey Office. Bank X
+    on the other hand puts only the bank account's name, as set up by
+    the user for display in the Bank X UI, into the exported
+    transaction data. In addition to the IBAN being absent from the
+    Bank X export data, the account's currency is missing, too. To
+    cater for this, the `bx2datev` script reads the environment
+    variables `CURRENCY` (defaulting to EUR when unset), and `ACCOUNT`
+    (indicating the bank account's IBAN) to correctly fill the
+    corresponding fields in the generated DATEV file. That way, the
+    bank account matching check in
+    `import-datev-ascii-weiterverarbeitungsdatei.txt` will work as
+    expected.
+    ```console
+    user@example$ (export ACCOUNT="DE07123412341234123412"; bx2datev <bankx-komplette.txt >monkey-data.txt)
+    Converted 79 transactions to DATEV format.
     ```
 
 ## How Do I Contribute? ##
