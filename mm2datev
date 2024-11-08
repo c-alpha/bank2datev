@@ -201,7 +201,7 @@ function chop(str, segs, chunk_size, max_chunks) {
         booked_currency   = $4;
         # split description text into chunks of 27 chars max
         # text beyond 14 * 27 = 378 chars gets truncated (and thus ignored)
-        num_descr_segs = chop($7, descrip, 27, 14);
+        num_descr_segs = chop($5, descrip, 27, 14);
         payment_type      = ($6!="unknown") ? $6 : "";
         sub(",", ".", $8);
         purchase_amount   = ($8 != "") ? $8 : 0.00;
