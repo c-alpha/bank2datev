@@ -14,6 +14,10 @@ BEGIN {
     fmt_2017=0;
     fmt_2018=0;
     fmt_2023=0;
+    # optionally adjust the below variables as per your needs
+    "date +%Y" | getline current_year;
+    year = (ENVIRON["YEAR"] != "") ? ENVIRON["YEAR"] : current_year;
+    print "Processing transactions authorised within the year "year"." >"/dev/stderr";
 }
 
 function unquote(str) {
@@ -188,7 +192,7 @@ function chop(str, segs, chunk_size, max_chunks) {
 
 # format starting summer 2023
 (fmt_2023==1) && (NR>3) {
-    if ($5 != "Lastschrift") {
+    if (($5 != "Lastschrift") && (index($1, year) != 0)) {
         ###
         # parse input record
         #
