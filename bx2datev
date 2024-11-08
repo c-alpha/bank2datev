@@ -11,8 +11,8 @@ BEGIN {
     RS        = "\r";
     num_trans = 0;
     # optionally adjust the below variables as per your needs
-    currency   = (ENVIRON["CURRENCY"] != "") ? ENVIRON["CURRENCY"] : "EUR";
-    my_account = (ENVIRON["ACCOUNT"] != "") ? ENVIRON["ACCOUNT"] : "0123456789";
+    currency = (ENVIRON["CURRENCY"] != "") ? ENVIRON["CURRENCY"] : "EUR";
+    my_iban  = (ENVIRON["ACCOUNT"] != "") ? ENVIRON["ACCOUNT"] : "0123456789";
 }
 
 function unquote(str) {
@@ -45,7 +45,7 @@ function chop(str, segs, chunk_size, max_chunks) {
     #
     src_account = $1;
     dst_account = $2;
-    sign        = (index(src_account, my_account) > 0) ? -1 : 1;
+    sign        = (index(src_account, substr(my_iban, 13)) > 0) ? -1 : 1;
     gsub("\\.",  "", $3);
     gsub(",",  ".", $3);
     booked_amount   = ($3 + 0) * sign;
@@ -80,7 +80,7 @@ function chop(str, segs, chunk_size, max_chunks) {
     #
     printf "%s;%s;%s;%s;%s;%s;%0.02f",
         enquote(""),                #  1    our BIC
-        enquote(my_account),        #  2    our IBAN
+        enquote(my_iban),           #  2    our IBAN
         enquote(""),                #  3    statement ID
         "",                         #  4    statement date
         booked_date,                #  5    booked date
