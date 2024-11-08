@@ -196,7 +196,8 @@ function chop(str, segs, chunk_size, max_chunks) {
         gsub("/", ".", $2);
         purchase_date     = $1;
         booked_date       = $2;
-        sub(",", ".", $3);
+        gsub("\\.",  "", $3);
+        gsub(",",  ".", $3);
         booked_amount     = $3;
         booked_currency   = $4;
         # split description text into chunks of 27 chars max
